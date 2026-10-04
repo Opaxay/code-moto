@@ -790,7 +790,7 @@ function ambStart(){
     if(!AMB.on) return;
     if(AMB.pv){ if(AMB.pv.playVideo) AMB.pv.playVideo(); ambLayer.classList.add("on"); return; }
     AMB.pv = new YT.Player("ytv", {
-      videoId: AMB.vid,
+      videoId: AMB.vid, host:"https://www.youtube-nocookie.com",
       playerVars:{autoplay:1, mute:1, controls:0, loop:1, playlist:AMB.vid, modestbranding:1,
                   playsinline:1, rel:0, iv_load_policy:3, disablekb:1, fs:0},
       events:{ onReady:e=>{ e.target.mute(); e.target.playVideo(); ambLayer.classList.add("on"); } }
@@ -811,7 +811,7 @@ function lofiStart(){
     if(!AMB.lofi) return;
     if(AMB.pa){ if(AMB.pa.playVideo) AMB.pa.playVideo(); return; }
     AMB.pa = new YT.Player("yta", {
-      videoId: AMB.mix,
+      videoId: AMB.mix, host:"https://www.youtube-nocookie.com",
       playerVars:{autoplay:1, controls:0, playsinline:1, rel:0, iv_load_policy:3, disablekb:1},
       events:{ onReady:e=>{ e.target.setVolume(55); e.target.playVideo(); },
                /* Le mix fait 2 h : on reboucle quand il se termine. */
