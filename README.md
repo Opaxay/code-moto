@@ -39,9 +39,11 @@ Garder `index.html` et le dossier `data/` dans le même dossier.
 En série libre, une mauvaise réponse affiche la leçon complète juste en dessous,
 source comprise : rien à cliquer, on lit et on enchaîne.
 
-Les boutons 🌃 et 🎧 de la barre du haut activent une ambiance « night ride »
-(vidéo de fond et musique lues depuis YouTube — nécessite une connexion ;
-tout le reste de l'appli fonctionne hors ligne).
+Les boutons 🌃 et 🎧 de la barre du haut activent une ambiance « night ride ».
+L'appli cherche d'abord un dossier `media/` à côté d'`index.html` et lit ces
+fichiers en local, hors ligne ; s'il est absent — c'est le cas de ce dépôt, qui
+ne distribue pas de médias — elle se replie sur une lecture YouTube, qui demande
+une connexion. Tout le reste de l'appli fonctionne hors ligne dans les deux cas.
 
 La progression est enregistrée localement dans le navigateur (`localStorage`) :
 elle reste sur l'appareil et n'est envoyée nulle part.

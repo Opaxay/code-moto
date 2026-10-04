@@ -201,6 +201,8 @@ footer a{color:var(--accent)}
 main,footer{position:relative;z-index:1}
 #ambiance{position:fixed;inset:0;z-index:0;background:#0B0D11}
 /* L'iframe est agrandie puis centrée pour couvrir l'écran comme un object-fit:cover. */
+#ambiance video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0;transition:opacity 1.6s ease}
+#ambiance video.on{opacity:1}
 #ambiance #ytv{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
   width:100vw;height:56.25vw;min-width:177.78vh;min-height:100vh;border:0;display:block;
   pointer-events:none;opacity:0;transition:opacity 1.8s ease}
@@ -230,9 +232,12 @@ main,footer{position:relative;z-index:1}
 </style>
 
 <div id="ambiance" hidden aria-hidden="true">
+  <video id="bgv0" muted playsinline></video>
+  <video id="bgv1" muted playsinline></video>
   <div id="ytv"></div>
   <div class="amb-veil"></div>
 </div>
+<audio id="lofi" preload="none"></audio>
 <div id="yta" aria-hidden="true"></div>
 
 <header class="topbar">
@@ -348,7 +353,7 @@ main,footer{position:relative;z-index:1}
 <footer>
   Outil de révision personnel, non affilié à l'État — contenu rédigé d'après le programme officiel de l'ETM
   (<a href="https://www.securite-routiere.gouv.fr" target="_blank" rel="noopener">securite-routiere.gouv.fr</a>).
-  En cas de doute, la réglementation en vigueur fait foi.<br>Ambiance : vidéo « <a href="https://www.youtube.com/watch?v=eAz4i0jT4aQ" target="_blank" rel="noopener">Tokyo Night Ride by Ninja H2 — Ep. 89</a> » (The Ninja H2 Japan MASAKI) · musique « <a href="https://www.youtube.com/watch?v=G5FmN1B7-TU" target="_blank" rel="noopener">songs to retire your parents to.</a> » (lucent) — lecture via YouTube.
+  En cas de doute, la réglementation en vigueur fait foi.<br>Ambiance : vidéo « <a href="https://www.youtube.com/watch?v=eAz4i0jT4aQ" target="_blank" rel="noopener">Tokyo Night Ride by Ninja H2 — Ep. 89</a> » (The Ninja H2 Japan MASAKI) · musique « <a href="https://www.youtube.com/watch?v=G5FmN1B7-TU" target="_blank" rel="noopener">songs to retire your parents to.</a> » (lucent) — lus depuis media/ en local, sinon via YouTube.
 </footer>
 
 <script>window.CM = { themes: [], theme(t){ this.themes.push(t); } };</script>
@@ -760,15 +765,39 @@ document.addEventListener("keydown", e=>{
 });
 
 /* ================= Ambiance night ride ================= */
-/* Vidéo de fond et musique sont lues directement depuis YouTube via l'IFrame API :
-   rien n'est hébergé ici, l'ambiance marche donc aussi sur la version en ligne. */
-const AMB = { vid:"eAz4i0jT4aQ", mix:"G5FmN1B7-TU", on:false, lofi:false,
-              pv:null, pa:null, apiReq:false, waiting:[] };
-const ambLayer = $("ambiance");
+/* Deux sources possibles, dans cet ordre :
+   1. les fichiers de media/ s'ils sont présents à côté de l'appli — lecture locale,
+      hors ligne, sans lecteur tiers (c'est le cas sur le poste de Tom) ;
+   2. sinon la lecture YouTube via l'IFrame API, pour que l'ambiance marche aussi
+      sur la version publiée, où media/ n'est pas distribué.
+   Le test se fait une fois, en demandant les métadonnées du premier clip. */
+const AMB = {
+  clips:["media/ride-01.mp4","media/ride-02.mp4","media/ride-03.mp4","media/ride-04.mp4",
+         "media/ride-05.mp4","media/ride-06.mp4","media/ride-07.mp4","media/ride-08.mp4"],
+  tracks:["media/mix-01.mp3","media/mix-02.mp3","media/mix-03.mp3","media/mix-04.mp3"],
+  vid:"eAz4i0jT4aQ", mix:"G5FmN1B7-TU",
+  local:null, pos:0, active:0, lofiPos:0, on:false, lofi:false,
+  pv:null, pa:null, apiReq:false, waiting:[]
+};
+const ambLayer = $("ambiance"), vids = [$("bgv0"), $("bgv1")], lofi = $("lofi");
 function prefGet(k){ try{ return localStorage.getItem(k); }catch(e){ return null; } }
 function prefSet(k,v){ try{ localStorage.setItem(k,v); }catch(e){} }
 
-/* L'API YouTube n'est chargée qu'au premier usage de l'ambiance. */
+/* media/ est-il livré avec cette copie de l'appli ? */
+function probeLocal(){
+  if(AMB.local !== null) return Promise.resolve(AMB.local);
+  return new Promise(res=>{
+    const t = document.createElement("video");
+    t.muted = true; t.preload = "metadata";
+    const done = v=>{ if(AMB.local===null){ AMB.local = v; t.removeAttribute("src"); res(v); } };
+    t.addEventListener("loadedmetadata", ()=>done(true), {once:true});
+    t.addEventListener("error", ()=>done(false), {once:true});
+    setTimeout(()=>done(false), 5000);
+    t.src = AMB.clips[0];
+  });
+}
+
+/* L'API YouTube n'est chargée que si media/ est absent. */
 function ytReady(cb){
   if(window.YT && YT.Player) return cb();
   AMB.waiting.push(cb);
@@ -783,44 +812,79 @@ function ytReady(cb){
   document.head.append(sc);
 }
 
+/* ---- Fond vidéo ---- */
+function nextClip(){
+  if(!AMB.on || !AMB.local) return;
+  AMB.pos = (AMB.pos+1) % AMB.clips.length;
+  const cur = vids[AMB.active], nxt = vids[1-AMB.active];
+  nxt.src = AMB.clips[AMB.pos];
+  nxt.play().then(()=>{ nxt.classList.add("on"); cur.classList.remove("on"); AMB.active = 1-AMB.active; })
+            .catch(()=>{});
+}
+vids.forEach(v=>v.addEventListener("ended", nextClip));
+
 function ambStart(){
   AMB.on = true; ambLayer.hidden = false; document.documentElement.classList.add("amb");
   $("btn-amb").setAttribute("aria-pressed","true"); prefSet("cm-amb","1");
-  ytReady(()=>{
+  probeLocal().then(hasLocal=>{
     if(!AMB.on) return;
-    if(AMB.pv){ if(AMB.pv.playVideo) AMB.pv.playVideo(); ambLayer.classList.add("on"); return; }
-    AMB.pv = new YT.Player("ytv", {
-      videoId: AMB.vid, host:"https://www.youtube-nocookie.com",
-      playerVars:{autoplay:1, mute:1, controls:0, loop:1, playlist:AMB.vid, modestbranding:1,
-                  playsinline:1, rel:0, iv_load_policy:3, disablekb:1, fs:0},
-      events:{ onReady:e=>{ e.target.mute(); e.target.playVideo(); ambLayer.classList.add("on"); } }
+    if(hasLocal){
+      const v = vids[AMB.active];
+      if(!v.src) v.src = AMB.clips[AMB.pos];
+      v.play().then(()=>v.classList.add("on")).catch(()=>{});
+      return;
+    }
+    ytReady(()=>{
+      if(!AMB.on) return;
+      if(AMB.pv){ if(AMB.pv.playVideo) AMB.pv.playVideo(); ambLayer.classList.add("on"); return; }
+      AMB.pv = new YT.Player("ytv", {
+        videoId: AMB.vid, host:"https://www.youtube-nocookie.com",
+        playerVars:{autoplay:1, mute:1, controls:0, loop:1, playlist:AMB.vid, modestbranding:1,
+                    playsinline:1, rel:0, iv_load_policy:3, disablekb:1, fs:0},
+        events:{ onReady:e=>{ e.target.mute(); e.target.playVideo(); ambLayer.classList.add("on"); } }
+      });
     });
   });
 }
 function ambStop(){
   AMB.on = false; ambLayer.classList.remove("on");
+  vids.forEach(v=>{ v.pause(); v.classList.remove("on"); });
   if(AMB.pv && AMB.pv.pauseVideo) AMB.pv.pauseVideo();
   ambLayer.hidden = true; document.documentElement.classList.remove("amb");
   $("btn-amb").setAttribute("aria-pressed","false"); prefSet("cm-amb","0");
 }
 $("btn-amb").addEventListener("click", ()=>AMB.on ? ambStop() : ambStart());
 
+/* ---- Musique ---- */
+lofi.addEventListener("ended", ()=>{
+  AMB.lofiPos = (AMB.lofiPos+1) % AMB.tracks.length;
+  lofi.src = AMB.tracks[AMB.lofiPos]; lofi.play().catch(()=>{});
+});
 function lofiStart(){
   AMB.lofi = true; $("btn-lofi").setAttribute("aria-pressed","true"); prefSet("cm-lofi","1");
-  ytReady(()=>{
+  probeLocal().then(hasLocal=>{
     if(!AMB.lofi) return;
-    if(AMB.pa){ if(AMB.pa.playVideo) AMB.pa.playVideo(); return; }
-    AMB.pa = new YT.Player("yta", {
-      videoId: AMB.mix, host:"https://www.youtube-nocookie.com",
-      playerVars:{autoplay:1, controls:0, playsinline:1, rel:0, iv_load_policy:3, disablekb:1},
-      events:{ onReady:e=>{ e.target.setVolume(55); e.target.playVideo(); },
-               /* Le mix fait 2 h : on reboucle quand il se termine. */
-               onStateChange:e=>{ if(e.data === YT.PlayerState.ENDED) e.target.playVideo(); } }
+    if(hasLocal){
+      if(!lofi.src) lofi.src = AMB.tracks[AMB.lofiPos];
+      lofi.volume = 0.55; lofi.play().catch(()=>{});
+      return;
+    }
+    ytReady(()=>{
+      if(!AMB.lofi) return;
+      if(AMB.pa){ if(AMB.pa.playVideo) AMB.pa.playVideo(); return; }
+      AMB.pa = new YT.Player("yta", {
+        videoId: AMB.mix, host:"https://www.youtube-nocookie.com",
+        playerVars:{autoplay:1, controls:0, playsinline:1, rel:0, iv_load_policy:3, disablekb:1},
+        events:{ onReady:e=>{ e.target.setVolume(55); e.target.playVideo(); },
+                 /* Le mix fait 2 h : on reboucle quand il se termine. */
+                 onStateChange:e=>{ if(e.data === YT.PlayerState.ENDED) e.target.playVideo(); } }
+      });
     });
   });
 }
 function lofiStop(){
-  AMB.lofi = false; if(AMB.pa && AMB.pa.pauseVideo) AMB.pa.pauseVideo();
+  AMB.lofi = false; lofi.pause();
+  if(AMB.pa && AMB.pa.pauseVideo) AMB.pa.pauseVideo();
   $("btn-lofi").setAttribute("aria-pressed","false"); prefSet("cm-lofi","0");
 }
 $("btn-lofi").addEventListener("click", ()=>AMB.lofi ? lofiStop() : lofiStart());
