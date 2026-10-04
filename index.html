@@ -1,0 +1,808 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Code Moto</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Source+Sans+3:ital,wght@0,400;0,600;0,700;1,400&display=swap">
+<style>
+/* Layout : app à onglets, une colonne centrée 880px, cartes sobres, signalétique routière en accent */
+:root{
+  --bg:#F2F3F1; --surface:#FFFFFF; --ink:#191C1E; --muted:#5A6472;
+  --accent:#19508F; --accent-ink:#FFFFFF; --accent-soft:#E3ECF7;
+  --ok:#1E7A3C; --ok-soft:#E4F2E8; --ko:#B3361F; --ko-soft:#F9E8E3;
+  --warn:#B07B00; --line:#DCDFD9; --pill:#EDEFEA;
+  --shadow:0 1px 2px rgba(20,24,28,.06),0 10px 28px -18px rgba(20,24,28,.28);
+  --font-display:"Barlow Condensed","Arial Narrow",sans-serif;
+  --font-body:"Source Sans 3","Helvetica Neue",Arial,sans-serif;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#141619; --surface:#1D2126; --ink:#E9EBED; --muted:#99A2AC;
+    --accent:#6FA1DF; --accent-ink:#0E1B2B; --accent-soft:#22334A;
+    --ok:#56B377; --ok-soft:#1E3226; --ko:#E07A5F; --ko-soft:#3A241E;
+    --warn:#D9AE3E; --line:#2A2F36; --pill:#262B31;
+    --shadow:0 1px 2px rgba(0,0,0,.4),0 10px 28px -18px rgba(0,0,0,.6);
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#141619; --surface:#1D2126; --ink:#E9EBED; --muted:#99A2AC;
+  --accent:#6FA1DF; --accent-ink:#0E1B2B; --accent-soft:#22334A;
+  --ok:#56B377; --ok-soft:#1E3226; --ko:#E07A5F; --ko-soft:#3A241E;
+  --warn:#D9AE3E; --line:#2A2F36; --pill:#262B31;
+  --shadow:0 1px 2px rgba(0,0,0,.4),0 10px 28px -18px rgba(0,0,0,.6);
+  color-scheme:dark;
+}
+body{background:var(--bg);color:var(--ink);font-family:var(--font-body);font-size:16px;line-height:1.55;margin:0}
+.topbar{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;background:var(--surface);border-bottom:1px solid var(--line);
+  display:flex;align-items:center;gap:20px;padding:10px 20px;flex-wrap:wrap}
+.brand{display:flex;align-items:center;gap:10px;min-width:0}
+.brand-badge{font-family:var(--font-display);font-weight:700;letter-spacing:.04em;background:var(--accent);color:var(--accent-ink);
+  border-radius:8px;padding:2px 9px;font-size:18px}
+.brand-name{font-family:var(--font-display);font-weight:700;font-size:22px;letter-spacing:.02em;text-transform:uppercase}
+.tabs{display:flex;gap:2px;overflow-x:auto;flex:1;min-width:0}
+.tab{font-family:var(--font-display);font-size:17px;font-weight:600;letter-spacing:.03em;text-transform:uppercase;
+  background:none;border:none;color:var(--muted);padding:8px 14px;border-radius:8px;cursor:pointer;white-space:nowrap}
+.tab:hover{color:var(--ink);background:var(--pill)}
+.tab.active{color:var(--accent);box-shadow:inset 0 -3px 0 var(--accent);border-radius:8px 8px 0 0}
+main{max-width:880px;margin:0 auto;padding:28px 20px 60px}
+h1{font-family:var(--font-display);font-weight:700;font-size:34px;line-height:1.1;letter-spacing:.01em;margin:0 0 10px;text-wrap:balance}
+h2{font-family:var(--font-display);font-weight:600;font-size:22px;letter-spacing:.02em;margin:0 0 10px}
+.lead{color:var(--muted);max-width:62ch;margin:0 0 22px}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:20px;box-shadow:var(--shadow)}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:16px}
+@media(max-width:700px){.grid2{grid-template-columns:1fr}}
+.mode-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin:20px 0 6px}
+@media(max-width:700px){.mode-cards{grid-template-columns:1fr}}
+.mode-card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:18px;box-shadow:var(--shadow);
+  display:flex;flex-direction:column;gap:8px;min-width:0}
+.mode-card h3{font-family:var(--font-display);font-size:20px;font-weight:600;margin:0;letter-spacing:.02em}
+.mode-card p{margin:0;color:var(--muted);font-size:14.5px;flex:1}
+.facts{margin:0;padding-left:20px;display:grid;gap:7px}
+.facts b{font-variant-numeric:tabular-nums}
+.src{color:var(--muted);font-size:13.5px;margin:14px 0 0}
+.src a{color:var(--accent)}
+.btn{font-family:var(--font-body);font-weight:600;font-size:15px;border-radius:10px;border:1px solid var(--line);
+  background:var(--surface);color:var(--ink);padding:9px 16px;cursor:pointer}
+.btn:hover{border-color:var(--muted)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.btn.primary:hover{filter:brightness(1.08)}
+.btn.big{font-size:17px;padding:12px 22px}
+.btn.ghost{background:none;border-color:transparent;color:var(--muted)}
+.btn.ghost:hover{color:var(--ink);background:var(--pill);border-color:transparent}
+.btn.small{font-size:13.5px;padding:6px 10px}
+.btn.danger{color:var(--ko);border-color:var(--ko)}
+.btn:disabled{opacity:.45;cursor:default}
+button:focus-visible,input:focus-visible,summary:focus-visible,a:focus-visible{outline:2.5px solid var(--accent);outline-offset:2px}
+.statline{display:flex;justify-content:space-between;gap:10px;padding:7px 0;border-bottom:1px dashed var(--line);font-size:15px}
+.statline:last-of-type{border-bottom:none}
+.statline b{font-variant-numeric:tabular-nums}
+.exam-chip{display:inline-flex;align-items:center;gap:6px;background:var(--pill);border-radius:8px;padding:3px 9px;
+  font-variant-numeric:tabular-nums;font-weight:600;font-size:14px;margin:3px 4px 0 0}
+.exam-chip.pass{background:var(--ok-soft);color:var(--ok)}
+.exam-chip.fail{background:var(--ko-soft);color:var(--ko)}
+/* ---- Réviser ---- */
+.view-head{display:flex;gap:14px;align-items:flex-end;justify-content:space-between;flex-wrap:wrap;margin-bottom:18px}
+#search{flex:1;min-width:230px;max-width:360px;border:1px solid var(--line);border-radius:10px;background:var(--surface);
+  color:var(--ink);padding:9px 13px;font-size:15px;font-family:var(--font-body)}
+.theme-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:12px}
+.theme-card{display:flex;gap:13px;align-items:flex-start;text-align:left;background:var(--surface);border:1px solid var(--line);
+  border-radius:12px;padding:15px;cursor:pointer;box-shadow:var(--shadow);min-width:0}
+.theme-card:hover{border-color:var(--accent)}
+.theme-num{font-family:var(--font-display);font-weight:700;font-size:19px;background:var(--accent-soft);color:var(--accent);
+  border-radius:8px;min-width:34px;height:34px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.theme-card .tc-name{font-weight:700;font-size:15.5px;line-height:1.25}
+.theme-card .tc-meta{color:var(--muted);font-size:13px;margin-top:3px;font-variant-numeric:tabular-nums}
+.rule{background:var(--surface);border:1px solid var(--line);border-radius:12px;margin-bottom:10px;overflow:hidden}
+.rule summary{list-style:none;display:flex;gap:11px;align-items:baseline;padding:13px 16px;cursor:pointer;font-weight:600}
+.rule summary::-webkit-details-marker{display:none}
+.rule summary:hover{background:var(--pill)}
+.rule .rid{font-family:var(--font-display);font-weight:600;color:var(--accent);font-size:14px;letter-spacing:.04em;flex-shrink:0}
+.rule-body{padding:2px 16px 15px;border-top:1px dashed var(--line)}
+.rule-body p{margin:10px 0 0;max-width:68ch}
+.rule-src{color:var(--muted);font-size:13px;margin-top:10px}
+.rule-nq{margin-left:auto;color:var(--muted);font-weight:400;font-size:13px;white-space:nowrap;font-variant-numeric:tabular-nums}
+.theme-head{display:flex;align-items:center;gap:12px;margin:14px 0 14px}
+.theme-head h2{margin:0}
+/* ---- Chips ---- */
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin:6px 0 24px}
+.chip{border:1.5px solid var(--line);background:var(--surface);color:var(--ink);border-radius:999px;padding:7px 14px;
+  font-size:14.5px;font-weight:600;cursor:pointer}
+.chip[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+/* ---- Question card ---- */
+.run-head{display:flex;align-items:center;gap:14px;margin-bottom:14px;flex-wrap:wrap}
+.run-info{font-family:var(--font-display);font-weight:600;font-size:19px;letter-spacing:.02em;text-transform:uppercase}
+.run-score{color:var(--muted);font-variant-numeric:tabular-nums;font-weight:600}
+.run-head .btn{margin-left:auto}
+.qcard{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:22px;box-shadow:var(--shadow)}
+.qmeta{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+.pill{font-size:12.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;border-radius:6px;padding:3px 8px;
+  background:var(--pill);color:var(--muted)}
+.pill.multi{background:var(--accent-soft);color:var(--accent)}
+.qtext{font-size:19px;font-weight:600;line-height:1.4;margin:0 0 18px;max-width:60ch}
+.choices{display:grid;gap:9px}
+.choice{display:flex;gap:13px;align-items:center;text-align:left;border:1.5px solid var(--line);background:var(--surface);
+  color:var(--ink);border-radius:11px;padding:11px 14px;font-size:16px;cursor:pointer;min-width:0}
+.choice:hover{border-color:var(--muted)}
+.choice .letter{font-family:var(--font-display);font-weight:700;font-size:16px;border:1.5px solid var(--line);border-radius:7px;
+  min-width:28px;height:28px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.choice span:last-child{min-width:0}
+.choice[aria-pressed="true"]{border-color:var(--accent);background:var(--accent-soft)}
+.choice[aria-pressed="true"] .letter{border-color:var(--accent);background:var(--accent);color:var(--accent-ink)}
+.choice.correct{border-color:var(--ok);background:var(--ok-soft)}
+.choice.correct .letter{border-color:var(--ok);background:var(--ok);color:#fff}
+.choice.wrongsel{border-color:var(--ko);background:var(--ko-soft)}
+.choice.wrongsel .letter{border-color:var(--ko);background:var(--ko);color:#fff}
+.choice:disabled{cursor:default;opacity:1}
+.choice.dim{opacity:.55}
+.qactions{display:flex;gap:10px;margin-top:18px;align-items:center;flex-wrap:wrap}
+.kbd-hint{color:var(--muted);font-size:13px;margin-left:auto}
+.correction{margin-top:18px;border-radius:11px;padding:14px 16px;font-size:15.5px}
+.correction.good{background:var(--ok-soft);border:1px solid var(--ok)}
+.correction.bad{background:var(--ko-soft);border:1px solid var(--ko)}
+.correction .verdict{font-family:var(--font-display);font-weight:700;font-size:18px;letter-spacing:.03em;text-transform:uppercase}
+.correction.good .verdict{color:var(--ok)}
+.correction.bad .verdict{color:var(--ko)}
+.correction p{margin:7px 0 0;max-width:65ch}
+.rule-link{margin-top:10px}
+.rule-link details{border-top:1px dashed var(--line);padding-top:9px}
+.rule-link summary{cursor:pointer;font-weight:600;color:var(--accent);font-size:14.5px}
+.rule-link p{font-size:14.5px}
+/* ---- Examen ---- */
+.timer{position:relative;width:52px;height:52px;flex-shrink:0}
+.timer svg{width:52px;height:52px;transform:rotate(-90deg)}
+.ring-bg{fill:none;stroke:var(--line);stroke-width:4}
+.ring-fg{fill:none;stroke:var(--accent);stroke-width:4;stroke-linecap:round;stroke-dasharray:125.66;transition:stroke-dashoffset .1s linear}
+.timer.low .ring-fg{stroke:var(--warn)}
+.timer.crit .ring-fg{stroke:var(--ko)}
+#timer-num{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-weight:700;
+  font-variant-numeric:tabular-nums;font-size:16px}
+.exam-bar{height:5px;background:var(--pill);border-radius:3px;margin-bottom:16px;overflow:hidden}
+#exam-bar-fill{height:100%;width:0;background:var(--accent);border-radius:3px}
+.result-hero{text-align:center;padding:30px 20px 26px}
+.result-score{font-family:var(--font-display);font-weight:700;font-size:72px;line-height:1;font-variant-numeric:tabular-nums}
+.result-score small{font-size:34px;color:var(--muted);font-weight:600}
+.verdict-stamp{display:inline-block;font-family:var(--font-display);font-weight:700;font-size:21px;letter-spacing:.09em;
+  text-transform:uppercase;border:2.5px solid;border-radius:9px;padding:5px 16px;margin-top:12px}
+.verdict-stamp.pass{color:var(--ok);border-color:var(--ok);background:var(--ok-soft)}
+.verdict-stamp.fail{color:var(--ko);border-color:var(--ko);background:var(--ko-soft)}
+.gauge{position:relative;height:14px;background:var(--pill);border-radius:7px;margin:26px auto 6px;max-width:420px}
+.gauge-fill{height:100%;border-radius:7px;background:var(--accent)}
+.gauge-fill.pass{background:var(--ok)} .gauge-fill.fail{background:var(--ko)}
+.gauge-seuil{position:absolute;top:-7px;bottom:-7px;width:2.5px;background:var(--ink);left:87.5%}
+.gauge-label{color:var(--muted);font-size:13px;text-align:center;margin-bottom:4px}
+.theme-breakdown{display:grid;gap:7px;margin-top:10px}
+.tb-row{display:grid;grid-template-columns:minmax(0,1fr) 54px 90px;gap:10px;align-items:center;font-size:14px}
+.tb-row .tb-name{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tb-row b{font-variant-numeric:tabular-nums;text-align:right}
+.tb-track{height:7px;background:var(--pill);border-radius:4px;overflow:hidden}
+.tb-fill{height:100%;background:var(--accent);border-radius:4px}
+.wrong-item{border:1px solid var(--line);border-left:4px solid var(--ko);border-radius:10px;background:var(--surface);
+  padding:14px 16px;margin-bottom:10px}
+.wrong-item .wq{font-weight:600;margin:0 0 7px}
+.wrong-item .wa{font-size:14.5px;margin:3px 0}
+.wrong-item .wa.given{color:var(--ko)} .wrong-item .wa.good{color:var(--ok);font-weight:600}
+.wrong-item .wexp{color:var(--muted);font-size:14.5px;margin:7px 0 0;max-width:68ch}
+.wrong-item .btn{margin-top:9px}
+footer{border-top:1px solid var(--line);color:var(--muted);font-size:13.5px;padding:18px 20px calc(18px + env(safe-area-inset-bottom,0px));
+  text-align:center}
+footer a{color:var(--accent)}
+.summary-box{text-align:center;padding:34px 20px}
+.summary-box .result-score{font-size:54px}
+.load-error{background:var(--ko-soft);border:1px solid var(--ko);border-radius:12px;padding:16px;margin-bottom:18px}
+
+/* ---- Ambiance night ride ---- */
+main,footer{position:relative;z-index:1}
+#ambiance{position:fixed;inset:0;z-index:0;background:#0B0D11}
+#ambiance video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0;transition:opacity 1.6s ease}
+#ambiance video.on{opacity:1}
+#ambiance .amb-veil{position:absolute;inset:0;background:linear-gradient(180deg,rgba(8,10,14,.78),rgba(8,10,14,.64) 40%,rgba(8,10,14,.84))}
+.amb-controls{display:flex;gap:6px}
+.amb-btn{font-size:17px;line-height:1;background:none;border:1.5px solid var(--line);border-radius:9px;padding:7px 10px;cursor:pointer;color:var(--muted)}
+.amb-btn[aria-pressed="true"]{border-color:var(--accent);color:var(--accent);background:var(--accent-soft)}
+:root.amb{background:#0B0D11;
+  --bg:transparent;--surface:rgba(20,24,30,.82);--ink:#ECEDEE;--muted:#A6AEB9;
+  --accent:#82B1E8;--accent-ink:#0E1B2B;--accent-soft:rgba(96,150,214,.28);
+  --ok:#5BC281;--ok-soft:rgba(38,116,68,.38);--ko:#F08A70;--ko-soft:rgba(176,62,38,.34);
+  --warn:#E8C14A;--line:rgba(255,255,255,.16);--pill:rgba(255,255,255,.09);
+  --shadow:0 2px 12px rgba(0,0,0,.5);color-scheme:dark}
+:root.amb .topbar{background:rgba(14,17,22,.72);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)}
+:root.amb .panel,:root.amb .mode-card,:root.amb .qcard,:root.amb .theme-card,:root.amb .rule,:root.amb .wrong-item,:root.amb .correction{backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
+@media (prefers-reduced-motion: reduce){*{transition:none!important;animation:none!important}}
+@media(max-width:480px){
+  h1{font-size:28px}
+  .qtext{font-size:17.5px}
+  .topbar{padding:8px 16px}
+  main{padding:20px 16px 50px}
+  .qcard{padding:16px}
+}
+</style>
+
+<div id="ambiance" hidden aria-hidden="true">
+  <video id="bgv0" muted playsinline></video>
+  <video id="bgv1" muted playsinline></video>
+  <div class="amb-veil"></div>
+</div>
+<audio id="lofi" preload="none"></audio>
+
+<header class="topbar">
+  <div class="brand"><span class="brand-badge">ETM</span><span class="brand-name">Code Moto</span></div>
+  <nav class="tabs" id="tabs" aria-label="Sections">
+    <button class="tab active" data-view="accueil">Accueil</button>
+    <button class="tab" data-view="reviser">Réviser</button>
+    <button class="tab" data-view="entrainement">S'entraîner</button>
+    <button class="tab" data-view="examen">Examen</button>
+  </nav>
+  <div class="amb-controls">
+    <button id="btn-amb" class="amb-btn" aria-pressed="false" title="Fond vidéo night ride">🌃</button>
+    <button id="btn-lofi" class="amb-btn" aria-pressed="false" title="Musique lofi">🎧</button>
+  </div>
+</header>
+
+<main>
+<section id="view-accueil" class="view">
+  <h1>Réviser l'épreuve théorique moto</h1>
+  <p class="lead">L'ETM est le « code moto » officiel, obligatoire pour les permis A1 et A2 depuis mars 2020.
+    Banque de travail : <strong id="stat-bank">chargement…</strong>, construite d'après le programme officiel en 9 thématiques.</p>
+  <div class="mode-cards">
+    <div class="mode-card"><h3>📘 Réviser les règles</h3>
+      <p>Les fiches de cours, thème par thème : chaque règle précise, chiffrée et sourcée.</p>
+      <button class="btn primary" data-goto="reviser">Ouvrir les fiches</button></div>
+    <div class="mode-card"><h3>🔁 Séries illimitées</h3>
+      <p>Des questions sans fin et sans chrono, correction immédiate après chaque réponse. Les questions ratées reviennent plus souvent.</p>
+      <button class="btn primary" data-goto="entrainement">Lancer une série</button></div>
+    <div class="mode-card"><h3>⏱️ Examen blanc</h3>
+      <p>Conditions réelles : 40 questions, 20 secondes chacune, résultat et correction uniquement à la fin.</p>
+      <button class="btn primary" data-goto="examen">Passer un examen</button></div>
+  </div>
+  <div class="grid2">
+    <div class="panel">
+      <h2>L'examen réel</h2>
+      <ul class="facts">
+        <li><b>40 questions</b> — 30 en images, 10 en vidéo, tirées d'une banque officielle d'environ 500.</li>
+        <li><b>20 secondes</b> pour répondre à chaque question, sur tablette individuelle.</li>
+        <li><b>35 bonnes réponses</b> minimum pour un résultat favorable.</li>
+        <li><b>9 thématiques</b> officielles, de la circulation aux premiers secours.</li>
+        <li>Résultat valable <b>5 ans</b>, pour 5 présentations aux épreuves pratiques.</li>
+      </ul>
+      <p class="src">Sources officielles :
+        <a href="https://www.securite-routiere.gouv.fr/les-differents-permis-de-conduire/permis-moto-categorie/passer-le-permis-a1-ou-a2" target="_blank" rel="noopener">securite-routiere.gouv.fr</a> ·
+        <a href="https://www.service-public.gouv.fr/particuliers/vosdroits/N530" target="_blank" rel="noopener">service-public.gouv.fr</a></p>
+    </div>
+    <div class="panel">
+      <h2>Ma progression</h2>
+      <div id="my-stats"></div>
+      <div id="exam-history"></div>
+      <p><button id="btn-reset-stats" class="btn ghost small">Réinitialiser ma progression</button></p>
+    </div>
+  </div>
+</section>
+
+<section id="view-reviser" class="view" hidden>
+  <div class="view-head">
+    <h1>Les règles, thème par thème</h1>
+    <input id="search" type="search" placeholder="Rechercher (gants, priorité, alcool…)" aria-label="Rechercher une règle">
+  </div>
+  <div id="theme-grid" class="theme-grid"></div>
+  <div id="rules-panel" hidden>
+    <button id="btn-back-themes" class="btn ghost small">← Tous les thèmes</button>
+    <div id="rules-list"></div>
+  </div>
+  <div id="search-results" hidden></div>
+</section>
+
+<section id="view-entrainement" class="view" hidden>
+  <div id="train-config">
+    <h1>Série d'entraînement</h1>
+    <p class="lead">Questions illimitées, sans chrono. La correction s'affiche après chaque réponse,
+      et les questions jamais vues ou ratées sont prioritaires.</p>
+    <h2>Thèmes de la série</h2>
+    <div id="train-themes" class="chips"></div>
+    <button id="btn-start-train" class="btn primary big">Commencer la série</button>
+  </div>
+  <div id="train-run" hidden>
+    <div class="run-head">
+      <div class="run-info">Entraînement</div>
+      <div class="run-score" id="train-score"></div>
+      <button id="btn-end-train" class="btn ghost small">Terminer la série</button>
+    </div>
+    <div id="train-q"></div>
+  </div>
+  <div id="train-summary" hidden></div>
+</section>
+
+<section id="view-examen" class="view" hidden>
+  <div id="exam-intro">
+    <h1>Examen blanc</h1>
+    <p class="lead">Comme le jour J : 40 questions tirées de tous les thèmes, 20 secondes par question,
+      aucune correction avant la fin. Il faut 35 bonnes réponses.</p>
+    <button id="btn-start-exam" class="btn primary big">Démarrer l'examen</button>
+    <div id="exam-last"></div>
+  </div>
+  <div id="exam-run" hidden>
+    <div class="run-head">
+      <div class="run-info" id="exam-progress">Question 1/40</div>
+      <div class="timer" id="timer">
+        <svg viewBox="0 0 48 48" aria-hidden="true"><circle class="ring-bg" cx="24" cy="24" r="20"/><circle class="ring-fg" id="ring" cx="24" cy="24" r="20"/></svg>
+        <span id="timer-num">20</span>
+      </div>
+      <button id="btn-quit-exam" class="btn ghost small">Abandonner</button>
+    </div>
+    <div class="exam-bar"><div id="exam-bar-fill"></div></div>
+    <div id="exam-q"></div>
+  </div>
+  <div id="exam-results" hidden></div>
+</section>
+</main>
+
+<footer>
+  Outil de révision personnel, non affilié à l'État — contenu rédigé d'après le programme officiel de l'ETM
+  (<a href="https://www.securite-routiere.gouv.fr" target="_blank" rel="noopener">securite-routiere.gouv.fr</a>).
+  En cas de doute, la réglementation en vigueur fait foi.<br>Ambiance : vidéo « <a href="https://www.youtube.com/watch?v=eAz4i0jT4aQ" target="_blank" rel="noopener">Tokyo Night Ride by Ninja H2 — Ep. 89</a> » (The Ninja H2 Japan MASAKI) · musique « <a href="https://www.youtube.com/watch?v=G5FmN1B7-TU" target="_blank" rel="noopener">songs to retire your parents to.</a> » (lucent) — copies privées, usage personnel.
+</footer>
+
+<script>window.CM = { themes: [], theme(t){ this.themes.push(t); } };</script>
+<script src="data/theme1.js"></script>
+<script src="data/theme2.js"></script>
+<script src="data/theme3.js"></script>
+<script src="data/theme4.js"></script>
+<script src="data/theme5.js"></script>
+<script src="data/theme6.js"></script>
+<script src="data/theme7.js"></script>
+<script src="data/theme8.js"></script>
+<script src="data/theme9.js"></script>
+<script>
+"use strict";
+/* ================= Données ================= */
+const THEMES = CM.themes.slice().sort((a,b)=>a.id-b.id);
+const RULES = {}; const ALLQ = [];
+THEMES.forEach(t=>t.regles.forEach(r=>{
+  RULES[r.id] = Object.assign({theme:t.id, themeNom:t.nom}, r);
+  r.questions.forEach((q,i)=>ALLQ.push({qid:r.id+"#"+i, theme:t.id, themeNom:t.nom, rule:r.id,
+    q:q.q, choix:q.choix, bonnes:q.bonnes.slice().sort(), exp:q.exp}));
+}));
+const LETTRES = ["A","B","C","D"];
+
+/* ================= Stats locales (conforts par appareil) ================= */
+function loadS(){ try{ return JSON.parse(localStorage.getItem("cm-stats-v1"))||{}; }catch(e){ return {}; } }
+function saveS(){ try{ localStorage.setItem("cm-stats-v1", JSON.stringify(S)); }catch(e){} }
+let S = loadS(); S.q = S.q||{}; S.exams = S.exams||[];
+function mark(qid, ok){ const e = S.q[qid]||(S.q[qid]={v:0,b:0,last:1}); e.v++; if(ok)e.b++; e.last = ok?1:0; saveS(); }
+
+/* ================= Utilitaires ================= */
+const $ = id=>document.getElementById(id);
+function shuffle(a){ a=a.slice(); for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; }
+function el(tag, cls, html){ const e=document.createElement(tag); if(cls)e.className=cls; if(html!==undefined)e.innerHTML=html; return e; }
+function esc(s){ return String(s).replace(/[&<>"]/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])); }
+function sameSet(a,b){ return a.length===b.length && a.every((v,i)=>v===b[i]); }
+
+/* ================= Navigation ================= */
+let currentView = "accueil";
+function showView(name){
+  currentView = name;
+  document.querySelectorAll(".view").forEach(v=>v.hidden = v.id!=="view-"+name);
+  document.querySelectorAll(".tab").forEach(t=>t.classList.toggle("active", t.dataset.view===name));
+  if(name==="accueil") renderHome();
+  window.scrollTo({top:0});
+}
+$("tabs").addEventListener("click", e=>{ const b=e.target.closest(".tab"); if(b) showView(b.dataset.view); });
+document.querySelectorAll("[data-goto]").forEach(b=>b.addEventListener("click", ()=>showView(b.dataset.goto)));
+
+/* ================= Accueil ================= */
+function renderHome(){
+  $("stat-bank").textContent = ALLQ.length+" questions · "+Object.keys(RULES).length+" règles";
+  const seen = Object.values(S.q); const v = seen.reduce((s,e)=>s+e.v,0), b = seen.reduce((s,e)=>s+e.b,0);
+  const uniq = seen.length;
+  const ms = $("my-stats"); ms.innerHTML = "";
+  ms.append(
+    el("div","statline","<span>Questions découvertes</span><b>"+uniq+" / "+ALLQ.length+"</b>"),
+    el("div","statline","<span>Réponses données</span><b>"+v+"</b>"),
+    el("div","statline","<span>Taux de bonnes réponses</span><b>"+(v? Math.round(100*b/v)+" %":"—")+"</b>"),
+    el("div","statline","<span>Examens blancs passés</span><b>"+S.exams.length+"</b>")
+  );
+  const eh = $("exam-history"); eh.innerHTML = "";
+  if(S.exams.length){
+    const line = el("div","", "<span style='color:var(--muted);font-size:13.5px'>Derniers examens :</span><br>");
+    S.exams.slice(-6).reverse().forEach(x=>{
+      line.append(el("span","exam-chip "+(x.score>=35?"pass":"fail"), x.score+"/40"));
+    });
+    eh.append(line);
+  }
+}
+let resetArmed = false;
+$("btn-reset-stats").addEventListener("click", function(){
+  if(!resetArmed){ resetArmed=true; this.textContent="Confirmer la remise à zéro ?"; this.classList.add("danger");
+    setTimeout(()=>{ resetArmed=false; this.textContent="Réinitialiser ma progression"; this.classList.remove("danger"); }, 3500);
+  } else { S={q:{},exams:[]}; saveS(); resetArmed=false; this.classList.remove("danger");
+    this.textContent="Réinitialiser ma progression"; renderHome(); }
+});
+
+/* ================= Réviser ================= */
+function renderThemeGrid(){
+  const g = $("theme-grid"); g.innerHTML = "";
+  THEMES.forEach(t=>{
+    const nq = t.regles.reduce((s,r)=>s+r.questions.length,0);
+    const c = el("button","theme-card");
+    c.append(el("span","theme-num",String(t.id)),
+      el("span","", "<span class='tc-name'>"+esc(t.nom)+"</span><br><span class='tc-meta'>"+t.regles.length+" règles · "+nq+" questions</span>"));
+    c.addEventListener("click", ()=>openTheme(t.id));
+    g.append(c);
+  });
+}
+function ruleNode(r, open){
+  const d = el("details","rule"); if(open) d.open = true; d.id = "rule-"+r.id;
+  const s = el("summary","", "<span class='rid'>"+esc(r.id)+"</span><span>"+esc(r.titre)+"</span><span class='rule-nq'>"+r.questions.length+" q.</span>");
+  const b = el("div","rule-body", "<p>"+esc(r.texte)+"</p><p class='rule-src'>Source : "+esc(r.source)+"</p>");
+  d.append(s,b); return d;
+}
+function openTheme(id, ruleId){
+  showView("reviser");
+  $("search").value = ""; $("search-results").hidden = true;
+  $("theme-grid").hidden = true; $("rules-panel").hidden = false;
+  const t = THEMES.find(t=>t.id===id);
+  const list = $("rules-list"); list.innerHTML = "";
+  const head = el("div","theme-head");
+  head.append(el("span","theme-num",String(t.id)), el("h2","",esc(t.nom)));
+  list.append(head);
+  t.regles.forEach(r=>list.append(ruleNode(r, r.id===ruleId)));
+  if(ruleId){ requestAnimationFrame(()=>{ const n=$("rule-"+ruleId); if(n) n.scrollIntoView({block:"center"}); }); }
+}
+$("btn-back-themes").addEventListener("click", ()=>{ $("rules-panel").hidden = true; $("theme-grid").hidden = false; });
+$("search").addEventListener("input", function(){
+  const q = this.value.trim().toLowerCase();
+  const sr = $("search-results");
+  if(q.length<2){ sr.hidden = true; $("theme-grid").hidden = !$("rules-panel").hidden ? true : false; return; }
+  $("theme-grid").hidden = true; $("rules-panel").hidden = true; sr.hidden = false; sr.innerHTML = "";
+  const hits = Object.values(RULES).filter(r=>(r.titre+" "+r.texte+" "+r.id).toLowerCase().includes(q));
+  sr.append(el("p","lead", hits.length? hits.length+" règle(s) trouvée(s) :" : "Aucune règle ne correspond à « "+esc(q)+" »."));
+  hits.slice(0,40).forEach(r=>{
+    const n = ruleNode(r,false);
+    n.querySelector("summary .rid").textContent = r.id+" · Thème "+r.theme;
+    sr.append(n);
+  });
+});
+
+/* ================= Rendu d'une question (partagé) ================= */
+function buildQuestion(container, item, opts){
+  opts = opts||{};
+  container.innerHTML = "";
+  const card = el("div","qcard");
+  const meta = el("div","qmeta");
+  meta.append(el("span","pill","Thème "+item.theme+" · "+esc(item.themeNom)));
+  if(item.bonnes.length>1) meta.append(el("span","pill multi","Plusieurs réponses"));
+  card.append(meta, el("p","qtext",esc(item.q)));
+  const box = el("div","choices");
+  const sel = new Set(); let locked = false;
+  const btns = item.choix.map((c,i)=>{
+    const b = el("button","choice");
+    b.setAttribute("aria-pressed","false");
+    b.append(el("span","letter",LETTRES[i]), el("span","",esc(c)));
+    b.addEventListener("click", ()=>api.toggle(i));
+    box.append(b); return b;
+  });
+  card.append(box);
+  const actions = el("div","qactions");
+  const valider = el("button","btn primary","Valider");
+  valider.disabled = true;
+  actions.append(valider, el("span","kbd-hint","Touches 1-4 puis Entrée"));
+  card.append(actions);
+  container.append(card);
+  const api = {
+    card, valider,
+    toggle(i){
+      if(locked || i>=btns.length) return;
+      if(item.bonnes.length===1){ sel.clear(); btns.forEach(b=>b.setAttribute("aria-pressed","false")); }
+      if(sel.has(i)){ sel.delete(i); btns[i].setAttribute("aria-pressed","false"); }
+      else { sel.add(i); btns[i].setAttribute("aria-pressed","true"); }
+      valider.disabled = sel.size===0;
+    },
+    selection(){ return Array.from(sel).sort(); },
+    lock(){ locked = true; valider.disabled = true; btns.forEach(b=>b.disabled = true); },
+    reveal(){
+      const good = api.selection(), ok = sameSet(good, item.bonnes);
+      btns.forEach((b,i)=>{
+        if(item.bonnes.includes(i)) b.classList.add("correct");
+        else if(sel.has(i)) b.classList.add("wrongsel");
+        else b.classList.add("dim");
+      });
+      const corr = el("div","correction "+(ok?"good":"bad"));
+      corr.append(el("div","verdict", ok?"Bonne réponse":"Mauvaise réponse — "+item.bonnes.map(i=>LETTRES[i]).join(" et ")));
+      corr.append(el("p","",esc(item.exp)));
+      const r = RULES[item.rule];
+      if(r){
+        const link = el("div","rule-link");
+        const det = el("details","");
+        det.append(el("summary","","Revoir la règle : "+esc(r.titre)),
+          el("p","",esc(r.texte)),
+          (()=>{ const b2=el("button","btn small","Ouvrir dans les fiches");
+            b2.addEventListener("click",()=>openTheme(r.theme, r.id)); const w=el("p",""); w.append(b2); return w; })());
+        link.append(det); corr.append(link);
+      }
+      card.append(corr);
+      return ok;
+    }
+  };
+  return api;
+}
+
+/* ================= Entraînement ================= */
+const TRAIN = { on:false, scope:[], recent:[], n:0, ok:0, streak:0, best:0, api:null, answered:false, next:null };
+function renderTrainChips(){
+  const box = $("train-themes"); box.innerHTML = "";
+  const all = el("button","chip","Tous les thèmes"); all.setAttribute("aria-pressed","true");
+  all.addEventListener("click", ()=>{ box.querySelectorAll(".chip").forEach(c=>c.setAttribute("aria-pressed", c===all ? "true":"false")); });
+  box.append(all);
+  THEMES.forEach(t=>{
+    const c = el("button","chip", t.id+" · "+esc(t.nom)); c.dataset.theme = t.id;
+    c.setAttribute("aria-pressed","false");
+    c.addEventListener("click", ()=>{
+      c.setAttribute("aria-pressed", c.getAttribute("aria-pressed")==="true"?"false":"true");
+      const any = Array.from(box.querySelectorAll(".chip[data-theme]")).some(x=>x.getAttribute("aria-pressed")==="true");
+      all.setAttribute("aria-pressed", any?"false":"true");
+    });
+    box.append(c);
+  });
+}
+function drawTraining(){
+  let pool = TRAIN.scope.filter(q=>!TRAIN.recent.includes(q.qid));
+  if(!pool.length){ TRAIN.recent = []; pool = TRAIN.scope; }
+  const prio = pool.filter(q=>{ const e=S.q[q.qid]; return !e || e.last===0; });
+  const base = (prio.length && Math.random()<0.72) ? prio : pool;
+  return base[Math.floor(Math.random()*base.length)];
+}
+function trainQuestion(){
+  const item = drawTraining();
+  TRAIN.recent.push(item.qid); if(TRAIN.recent.length>14) TRAIN.recent.shift();
+  TRAIN.answered = false;
+  const api = buildQuestion($("train-q"), item);
+  TRAIN.api = api;
+  api.valider.addEventListener("click", ()=>{
+    if(TRAIN.answered) return;
+    TRAIN.answered = true;
+    api.lock();
+    const ok = api.reveal();
+    mark(item.qid, ok);
+    TRAIN.n++; if(ok){ TRAIN.ok++; TRAIN.streak++; TRAIN.best=Math.max(TRAIN.best,TRAIN.streak); } else TRAIN.streak=0;
+    updateTrainScore();
+    const next = el("button","btn primary","Question suivante");
+    next.addEventListener("click", trainQuestion);
+    api.card.querySelector(".qactions").prepend(next);
+    TRAIN.next = next; next.focus();
+  });
+}
+function updateTrainScore(){
+  $("train-score").textContent = TRAIN.ok+" / "+TRAIN.n+(TRAIN.n? " · "+Math.round(100*TRAIN.ok/TRAIN.n)+" %":"")+(TRAIN.streak>2? " · série de "+TRAIN.streak:"");
+}
+$("btn-start-train").addEventListener("click", ()=>{
+  const picked = Array.from(document.querySelectorAll("#train-themes .chip[data-theme]"))
+    .filter(c=>c.getAttribute("aria-pressed")==="true").map(c=>+c.dataset.theme);
+  TRAIN.scope = picked.length ? ALLQ.filter(q=>picked.includes(q.theme)) : ALLQ.slice();
+  if(!TRAIN.scope.length) return;
+  Object.assign(TRAIN,{on:true,recent:[],n:0,ok:0,streak:0,best:0,next:null,answered:false});
+  $("train-config").hidden = true; $("train-summary").hidden = true; $("train-run").hidden = false;
+  updateTrainScore(); trainQuestion();
+});
+$("btn-end-train").addEventListener("click", ()=>{
+  TRAIN.on = false;
+  $("train-run").hidden = true;
+  const s = $("train-summary"); s.hidden = false; s.innerHTML = "";
+  const box = el("div","panel summary-box");
+  box.append(el("h2","","Série terminée"),
+    el("div","result-score", TRAIN.ok+"<small> / "+TRAIN.n+"</small>"),
+    el("p","lead", TRAIN.n ? Math.round(100*TRAIN.ok/TRAIN.n)+" % de bonnes réponses"+(TRAIN.best>2?" · meilleure série : "+TRAIN.best:"") : "Aucune question répondue."));
+  const again = el("button","btn primary big","Nouvelle série");
+  again.addEventListener("click", ()=>{ s.hidden = true; $("train-config").hidden = false; });
+  box.append(again); s.append(box);
+});
+
+/* ================= Examen ================= */
+const EX = { on:false, items:[], idx:0, answers:[], deadline:0, timerId:null, api:null };
+function examDraw(){
+  const groups = THEMES.map(t=>shuffle(ALLQ.filter(q=>q.theme===t.id)));
+  const total = ALLQ.length;
+  const quotas = groups.map(g=>Math.min(g.length, Math.max(1, Math.round(40*g.length/total))));
+  let sum = quotas.reduce((a,b)=>a+b,0), i = 0;
+  while(sum!==40 && i<600){
+    const j = i % groups.length;
+    if(sum<40 && quotas[j]<groups[j].length){ quotas[j]++; sum++; }
+    else if(sum>40 && quotas[j]>1){ quotas[j]--; sum--; }
+    i++;
+  }
+  let picked = [];
+  groups.forEach((g,j)=>picked = picked.concat(g.slice(0,quotas[j])));
+  return shuffle(picked).slice(0,40);
+}
+function ringUpdate(remaining){
+  const frac = Math.max(0, remaining/20);
+  $("ring").style.strokeDashoffset = String(125.66*(1-frac));
+  $("timer-num").textContent = String(Math.max(0, Math.ceil(remaining)));
+  const t = $("timer");
+  t.classList.toggle("low", remaining<=10 && remaining>5);
+  t.classList.toggle("crit", remaining<=5);
+}
+function examQuestion(){
+  const item = EX.items[EX.idx];
+  $("exam-progress").textContent = "Question "+(EX.idx+1)+"/40";
+  $("exam-bar-fill").style.width = (100*EX.idx/40)+"%";
+  const api = buildQuestion($("exam-q"), item);
+  EX.api = api;
+  api.card.querySelector(".kbd-hint").textContent = "Touches 1-4 puis Entrée — sans réponse à 0 s, la question est comptée fausse";
+  api.valider.addEventListener("click", ()=>examValidate(false));
+  EX.deadline = performance.now() + 20000;
+  clearInterval(EX.timerId);
+  ringUpdate(20);
+  EX.timerId = setInterval(()=>{
+    const remaining = (EX.deadline - performance.now())/1000;
+    ringUpdate(remaining);
+    if(remaining<=0) examValidate(true);
+  }, 100);
+}
+function examValidate(timeout){
+  if(!EX.on) return;
+  clearInterval(EX.timerId);
+  const item = EX.items[EX.idx];
+  const sel = EX.api ? EX.api.selection() : [];
+  const ok = sameSet(sel, item.bonnes);
+  EX.answers.push({item, sel, ok});
+  mark(item.qid, ok);
+  EX.idx++;
+  if(EX.idx>=40) examEnd(); else examQuestion();
+}
+function examEnd(){
+  EX.on = false; clearInterval(EX.timerId);
+  $("exam-run").hidden = true;
+  const score = EX.answers.filter(a=>a.ok).length;
+  S.exams.push({date:new Date().toISOString().slice(0,10), score}); saveS();
+  const res = $("exam-results"); res.hidden = false; res.innerHTML = "";
+  const hero = el("div","panel result-hero");
+  hero.append(el("div","result-score", score+"<small> / 40</small>"));
+  hero.append(el("div","", "<span class='verdict-stamp "+(score>=35?"pass":"fail")+"'>"+(score>=35?"Résultat favorable":"Résultat défavorable")+"</span>"));
+  const g = el("div","gauge");
+  g.append(el("div","gauge-fill "+(score>=35?"pass":"fail")), el("div","gauge-seuil"));
+  g.firstChild.style.width = (100*score/40)+"%";
+  hero.append(g, el("p","gauge-label","Seuil de réussite : 35/40"));
+  res.append(hero);
+  // répartition par thème
+  const bd = el("div","panel"); bd.style.marginTop = "16px";
+  bd.append(el("h2","","Par thème"));
+  const grid = el("div","theme-breakdown");
+  THEMES.forEach(t=>{
+    const qs = EX.answers.filter(a=>a.item.theme===t.id);
+    if(!qs.length) return;
+    const ok = qs.filter(a=>a.ok).length;
+    const row = el("div","tb-row");
+    const track = el("div","tb-track"); track.append(el("div","tb-fill"));
+    track.firstChild.style.width = (100*ok/qs.length)+"%";
+    row.append(el("span","tb-name", t.id+" · "+esc(t.nom)), el("b","", ok+"/"+qs.length), track);
+    grid.append(row);
+  });
+  bd.append(grid); res.append(bd);
+  // erreurs
+  const wrongs = EX.answers.filter(a=>!a.ok);
+  const wbox = el("div",""); wbox.style.marginTop = "16px";
+  wbox.append(el("h2","", wrongs.length ? "Vos "+wrongs.length+" erreur"+(wrongs.length>1?"s":"") : "Aucune erreur — sans faute !"));
+  wrongs.forEach(a=>{
+    const w = el("div","wrong-item");
+    w.append(el("p","wq", esc(a.item.q)));
+    w.append(el("p","wa given", "Votre réponse : "+(a.sel.length? a.sel.map(i=>LETTRES[i]+" — "+esc(a.item.choix[i])).join(" · ") : "aucune (temps écoulé)")));
+    w.append(el("p","wa good", "Bonne réponse : "+a.item.bonnes.map(i=>LETTRES[i]+" — "+esc(a.item.choix[i])).join(" · ")));
+    w.append(el("p","wexp", esc(a.item.exp)));
+    const r = RULES[a.item.rule];
+    if(r){ const b = el("button","btn small","Revoir la règle « "+esc(r.titre)+" »");
+      b.addEventListener("click", ()=>openTheme(r.theme, r.id)); w.append(b); }
+    wbox.append(w);
+  });
+  res.append(wbox);
+  const again = el("p",""); again.style.marginTop = "20px";
+  const b1 = el("button","btn primary big","Refaire un examen");
+  b1.addEventListener("click", startExam);
+  again.append(b1); res.append(again);
+  window.scrollTo({top:0});
+}
+function startExam(){
+  Object.assign(EX,{on:true, items:examDraw(), idx:0, answers:[], api:null});
+  $("exam-intro").hidden = true; $("exam-results").hidden = true; $("exam-run").hidden = false;
+  examQuestion();
+}
+$("btn-start-exam").addEventListener("click", startExam);
+let quitArmed = false;
+$("btn-quit-exam").addEventListener("click", function(){
+  if(!quitArmed){ quitArmed = true; this.textContent = "Confirmer l'abandon ?"; this.classList.add("danger");
+    setTimeout(()=>{ quitArmed=false; this.textContent="Abandonner"; this.classList.remove("danger"); }, 3500);
+  } else { quitArmed = false; this.textContent = "Abandonner"; this.classList.remove("danger");
+    EX.on = false; clearInterval(EX.timerId);
+    $("exam-run").hidden = true; $("exam-intro").hidden = false; }
+});
+function renderExamIntroStats(){
+  const box = $("exam-last"); box.innerHTML = "";
+  if(S.exams.length){
+    const line = el("p","lead"); line.style.marginTop = "18px";
+    line.innerHTML = "Vos derniers résultats : ";
+    S.exams.slice(-6).reverse().forEach(x=>line.append(el("span","exam-chip "+(x.score>=35?"pass":"fail"), x.score+"/40")));
+    box.append(line);
+  }
+}
+
+/* ================= Clavier ================= */
+document.addEventListener("keydown", e=>{
+  if(e.target.matches("input,textarea")) return;
+  const api = (EX.on && !$("exam-run").hidden) ? EX.api : (TRAIN.on && !$("train-run").hidden ? TRAIN.api : null);
+  if(!api) return;
+  const k = e.key.toUpperCase();
+  const idx = ["1","2","3","4"].indexOf(e.key)>=0 ? +e.key-1 : LETTRES.indexOf(k);
+  if(idx>=0){ api.toggle(idx); e.preventDefault(); }
+  else if(e.key==="Enter"){
+    if(TRAIN.on && TRAIN.answered && TRAIN.next){ TRAIN.next.click(); }
+    else if(!api.valider.disabled){ api.valider.click(); }
+    e.preventDefault();
+  }
+});
+
+/* ================= Ambiance night ride ================= */
+const AMB = {
+  clips:["media/ride-01.mp4","media/ride-02.mp4","media/ride-03.mp4","media/ride-04.mp4","media/ride-05.mp4","media/ride-06.mp4","media/ride-07.mp4","media/ride-08.mp4"],
+  tracks:["media/mix-01.mp3","media/mix-02.mp3","media/mix-03.mp3","media/mix-04.mp3"],
+  order:[], pos:0, active:0, on:false
+};
+const ambLayer = $("ambiance"), vids = [$("bgv0"), $("bgv1")], lofi = $("lofi");
+function prefGet(k){ try{ return localStorage.getItem(k); }catch(e){ return null; } }
+function prefSet(k,v){ try{ localStorage.setItem(k,v); }catch(e){} }
+function nextClip(){
+  if(!AMB.on) return;
+  AMB.pos = (AMB.pos+1) % AMB.order.length;
+  const cur = vids[AMB.active], nxt = vids[1-AMB.active];
+  nxt.src = AMB.order[AMB.pos];
+  nxt.play().then(()=>{ nxt.classList.add("on"); cur.classList.remove("on"); AMB.active = 1-AMB.active; }).catch(()=>{});
+}
+vids.forEach(v=>v.addEventListener("ended", nextClip));
+function ambStart(){
+  AMB.on = true; ambLayer.hidden = false; document.documentElement.classList.add("amb");
+  $("btn-amb").setAttribute("aria-pressed","true");
+  if(!AMB.order.length){ AMB.order = AMB.clips.slice(); }
+  const v = vids[AMB.active];
+  if(!v.src) v.src = AMB.order[AMB.pos];
+  v.play().then(()=>v.classList.add("on")).catch(()=>{});
+  prefSet("cm-amb","1");
+}
+function ambStop(){
+  AMB.on = false; vids.forEach(v=>{ v.pause(); v.classList.remove("on"); });
+  ambLayer.hidden = true; document.documentElement.classList.remove("amb");
+  $("btn-amb").setAttribute("aria-pressed","false");
+  prefSet("cm-amb","0");
+}
+$("btn-amb").addEventListener("click", ()=>AMB.on ? ambStop() : ambStart());
+let lofiPos = 0;
+function lofiStart(){
+  if(!lofi.src) lofi.src = AMB.tracks[lofiPos];
+  lofi.volume = 0.55;
+  lofi.play().then(()=>$("btn-lofi").setAttribute("aria-pressed","true")).catch(()=>{});
+  prefSet("cm-lofi","1");
+}
+function lofiStop(){ lofi.pause(); $("btn-lofi").setAttribute("aria-pressed","false"); prefSet("cm-lofi","0"); }
+lofi.addEventListener("ended", ()=>{ lofiPos = (lofiPos+1)%AMB.tracks.length; lofi.src = AMB.tracks[lofiPos]; lofi.play().catch(()=>{}); });
+$("btn-lofi").addEventListener("click", ()=>lofi.paused ? lofiStart() : lofiStop());
+(function(){
+  const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const saved = prefGet("cm-amb");
+  if(saved === "1" || (saved === null && !reduced)) ambStart();
+  if(prefGet("cm-lofi") === "1"){
+    document.addEventListener("pointerdown", ()=>{ if(prefGet("cm-lofi")==="1") lofiStart(); }, {once:true});
+  }
+})();
+
+/* ================= Démarrage ================= */
+function init(){
+  if(!THEMES.length){
+    const err = el("div","load-error","<b>Banque de questions introuvable.</b> Les fichiers de données (data/theme1.js à theme9.js) n'ont pas été chargés.");
+    document.querySelector("main").prepend(err);
+    return;
+  }
+  renderHome(); renderThemeGrid(); renderTrainChips(); renderExamIntroStats();
+}
+const boot = (data)=>{ init(); if(data && data.view) showView(data.view); };
+if(window.claude && window.claude.hot && typeof window.claude.hot.snapshot==="function"){
+  window.claude.hot.snapshot(()=>({view: currentView}));
+}
+(window.claude && window.claude.hot && window.claude.hot.ready) ? window.claude.hot.ready(boot) : boot((window.claude&&window.claude.hot&&window.claude.hot.data)||{});
+</script>
