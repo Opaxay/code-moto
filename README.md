@@ -13,13 +13,13 @@ Aucune installation, aucune dépendance, aucun serveur, aucun accès internet re
 ### En une commande
 
 ```bash
-git clone https://github.com/USER/code-moto.git && open code-moto/index.html
+git clone https://github.com/Opaxay/code-moto.git && open code-moto/index.html
 ```
 
 Sur Windows (PowerShell ou cmd) :
 
 ```
-git clone https://github.com/USER/code-moto.git && start code-moto\index.html
+git clone https://github.com/Opaxay/code-moto.git && start code-moto\index.html
 ```
 
 ### Sans git
