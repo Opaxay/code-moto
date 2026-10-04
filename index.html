@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Code Moto</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%2319508F'/%3E%3Ctext x='16' y='23' font-family='system-ui,sans-serif' font-size='18' font-weight='700' text-anchor='middle' fill='%23fff'%3EM%3C/text%3E%3C/svg%3E">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Source+Sans+3:ital,wght@0,400;0,600;0,700;1,400&display=swap">
 <style>
 /* Layout : app à onglets, une colonne centrée 880px, cartes sobres, signalétique routière en accent */
@@ -149,6 +150,10 @@ button:focus-visible,input:focus-visible,summary:focus-visible,a:focus-visible{o
 .rule-link details{border-top:1px dashed var(--line);padding-top:9px}
 .rule-link summary{cursor:pointer;font-weight:600;color:var(--accent);font-size:14.5px}
 .rule-link p{font-size:14.5px}
+.rule-link.open{border-top:1px dashed var(--line);padding-top:11px}
+.lesson-head{font-family:var(--font-display);font-weight:700;color:var(--accent);font-size:15px;
+  letter-spacing:.02em;text-transform:uppercase}
+.rule-link.open p{max-width:68ch}
 /* ---- Examen ---- */
 .timer{position:relative;width:52px;height:52px;flex-shrink:0}
 .timer svg{width:52px;height:52px;transform:rotate(-90deg)}
@@ -195,8 +200,13 @@ footer a{color:var(--accent)}
 /* ---- Ambiance night ride ---- */
 main,footer{position:relative;z-index:1}
 #ambiance{position:fixed;inset:0;z-index:0;background:#0B0D11}
-#ambiance video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0;transition:opacity 1.6s ease}
-#ambiance video.on{opacity:1}
+/* L'iframe est agrandie puis centrée pour couvrir l'écran comme un object-fit:cover. */
+#ambiance #ytv{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+  width:100vw;height:56.25vw;min-width:177.78vh;min-height:100vh;border:0;display:block;
+  pointer-events:none;opacity:0;transition:opacity 1.8s ease}
+#ambiance.on #ytv{opacity:1}
+/* Lecteur audio : présent et de taille non nulle (sinon les navigateurs le mettent en veille), mais invisible. */
+#yta{position:fixed;left:0;bottom:0;width:200px;height:120px;border:0;opacity:.001;pointer-events:none;z-index:-1}
 #ambiance .amb-veil{position:absolute;inset:0;background:linear-gradient(180deg,rgba(8,10,14,.78),rgba(8,10,14,.64) 40%,rgba(8,10,14,.84))}
 .amb-controls{display:flex;gap:6px}
 .amb-btn{font-size:17px;line-height:1;background:none;border:1.5px solid var(--line);border-radius:9px;padding:7px 10px;cursor:pointer;color:var(--muted)}
@@ -220,11 +230,10 @@ main,footer{position:relative;z-index:1}
 </style>
 
 <div id="ambiance" hidden aria-hidden="true">
-  <video id="bgv0" muted playsinline></video>
-  <video id="bgv1" muted playsinline></video>
+  <div id="ytv"></div>
   <div class="amb-veil"></div>
 </div>
-<audio id="lofi" preload="none"></audio>
+<div id="yta" aria-hidden="true"></div>
 
 <header class="topbar">
   <div class="brand"><span class="brand-badge">ETM</span><span class="brand-name">Code Moto</span></div>
@@ -339,7 +348,7 @@ main,footer{position:relative;z-index:1}
 <footer>
   Outil de révision personnel, non affilié à l'État — contenu rédigé d'après le programme officiel de l'ETM
   (<a href="https://www.securite-routiere.gouv.fr" target="_blank" rel="noopener">securite-routiere.gouv.fr</a>).
-  En cas de doute, la réglementation en vigueur fait foi.<br>Ambiance : vidéo « <a href="https://www.youtube.com/watch?v=eAz4i0jT4aQ" target="_blank" rel="noopener">Tokyo Night Ride by Ninja H2 — Ep. 89</a> » (The Ninja H2 Japan MASAKI) · musique « <a href="https://www.youtube.com/watch?v=G5FmN1B7-TU" target="_blank" rel="noopener">songs to retire your parents to.</a> » (lucent) — copies privées, usage personnel.
+  En cas de doute, la réglementation en vigueur fait foi.<br>Ambiance : vidéo « <a href="https://www.youtube.com/watch?v=eAz4i0jT4aQ" target="_blank" rel="noopener">Tokyo Night Ride by Ninja H2 — Ep. 89</a> » (The Ninja H2 Japan MASAKI) · musique « <a href="https://www.youtube.com/watch?v=G5FmN1B7-TU" target="_blank" rel="noopener">songs to retire your parents to.</a> » (lucent) — lecture via YouTube.
 </footer>
 
 <script>window.CM = { themes: [], theme(t){ this.themes.push(t); } };</script>
@@ -511,13 +520,24 @@ function buildQuestion(container, item, opts){
       corr.append(el("p","",esc(item.exp)));
       const r = RULES[item.rule];
       if(r){
+        const fiches = ()=>{ const b2=el("button","btn small","Ouvrir dans les fiches");
+          b2.addEventListener("click",()=>openTheme(r.theme, r.id)); const w=el("p",""); w.append(b2); return w; };
         const link = el("div","rule-link");
-        const det = el("details","");
-        det.append(el("summary","","Revoir la règle : "+esc(r.titre)),
-          el("p","",esc(r.texte)),
-          (()=>{ const b2=el("button","btn small","Ouvrir dans les fiches");
-            b2.addEventListener("click",()=>openTheme(r.theme, r.id)); const w=el("p",""); w.append(b2); return w; })());
-        link.append(det); corr.append(link);
+        if(ok){
+          /* Bonne réponse : la règle reste repliée, on n'encombre pas. */
+          const det = el("details","");
+          det.append(el("summary","","Revoir la règle : "+esc(r.titre)),
+            el("p","",esc(r.texte)), fiches());
+          link.append(det);
+        } else {
+          /* Mauvaise réponse : la leçon s'affiche en entier, lisible sans un clic. */
+          link.classList.add("open");
+          link.append(el("div","lesson-head","La leçon — "+esc(r.titre)),
+            el("p","",esc(r.texte)),
+            el("p","rule-src","Source : "+esc(r.source)),
+            fiches());
+        }
+        corr.append(link);
       }
       card.append(corr);
       return ok;
@@ -740,52 +760,76 @@ document.addEventListener("keydown", e=>{
 });
 
 /* ================= Ambiance night ride ================= */
-const AMB = {
-  clips:["media/ride-01.mp4","media/ride-02.mp4","media/ride-03.mp4","media/ride-04.mp4","media/ride-05.mp4","media/ride-06.mp4","media/ride-07.mp4","media/ride-08.mp4"],
-  tracks:["media/mix-01.mp3","media/mix-02.mp3","media/mix-03.mp3","media/mix-04.mp3"],
-  order:[], pos:0, active:0, on:false
-};
-const ambLayer = $("ambiance"), vids = [$("bgv0"), $("bgv1")], lofi = $("lofi");
+/* Vidéo de fond et musique sont lues directement depuis YouTube via l'IFrame API :
+   rien n'est hébergé ici, l'ambiance marche donc aussi sur la version en ligne. */
+const AMB = { vid:"eAz4i0jT4aQ", mix:"G5FmN1B7-TU", on:false, lofi:false,
+              pv:null, pa:null, apiReq:false, waiting:[] };
+const ambLayer = $("ambiance");
 function prefGet(k){ try{ return localStorage.getItem(k); }catch(e){ return null; } }
 function prefSet(k,v){ try{ localStorage.setItem(k,v); }catch(e){} }
-function nextClip(){
-  if(!AMB.on) return;
-  AMB.pos = (AMB.pos+1) % AMB.order.length;
-  const cur = vids[AMB.active], nxt = vids[1-AMB.active];
-  nxt.src = AMB.order[AMB.pos];
-  nxt.play().then(()=>{ nxt.classList.add("on"); cur.classList.remove("on"); AMB.active = 1-AMB.active; }).catch(()=>{});
+
+/* L'API YouTube n'est chargée qu'au premier usage de l'ambiance. */
+function ytReady(cb){
+  if(window.YT && YT.Player) return cb();
+  AMB.waiting.push(cb);
+  if(AMB.apiReq) return;
+  AMB.apiReq = true;
+  window.onYouTubeIframeAPIReady = ()=>{
+    const w = AMB.waiting.slice(); AMB.waiting.length = 0; w.forEach(f=>f());
+  };
+  const sc = document.createElement("script");
+  sc.src = "https://www.youtube.com/iframe_api";
+  sc.onerror = ()=>{ AMB.apiReq = false; AMB.waiting.length = 0; };
+  document.head.append(sc);
 }
-vids.forEach(v=>v.addEventListener("ended", nextClip));
+
 function ambStart(){
   AMB.on = true; ambLayer.hidden = false; document.documentElement.classList.add("amb");
-  $("btn-amb").setAttribute("aria-pressed","true");
-  if(!AMB.order.length){ AMB.order = AMB.clips.slice(); }
-  const v = vids[AMB.active];
-  if(!v.src) v.src = AMB.order[AMB.pos];
-  v.play().then(()=>v.classList.add("on")).catch(()=>{});
-  prefSet("cm-amb","1");
+  $("btn-amb").setAttribute("aria-pressed","true"); prefSet("cm-amb","1");
+  ytReady(()=>{
+    if(!AMB.on) return;
+    if(AMB.pv){ if(AMB.pv.playVideo) AMB.pv.playVideo(); ambLayer.classList.add("on"); return; }
+    AMB.pv = new YT.Player("ytv", {
+      videoId: AMB.vid,
+      playerVars:{autoplay:1, mute:1, controls:0, loop:1, playlist:AMB.vid, modestbranding:1,
+                  playsinline:1, rel:0, iv_load_policy:3, disablekb:1, fs:0},
+      events:{ onReady:e=>{ e.target.mute(); e.target.playVideo(); ambLayer.classList.add("on"); } }
+    });
+  });
 }
 function ambStop(){
-  AMB.on = false; vids.forEach(v=>{ v.pause(); v.classList.remove("on"); });
+  AMB.on = false; ambLayer.classList.remove("on");
+  if(AMB.pv && AMB.pv.pauseVideo) AMB.pv.pauseVideo();
   ambLayer.hidden = true; document.documentElement.classList.remove("amb");
-  $("btn-amb").setAttribute("aria-pressed","false");
-  prefSet("cm-amb","0");
+  $("btn-amb").setAttribute("aria-pressed","false"); prefSet("cm-amb","0");
 }
 $("btn-amb").addEventListener("click", ()=>AMB.on ? ambStop() : ambStart());
-let lofiPos = 0;
+
 function lofiStart(){
-  if(!lofi.src) lofi.src = AMB.tracks[lofiPos];
-  lofi.volume = 0.55;
-  lofi.play().then(()=>$("btn-lofi").setAttribute("aria-pressed","true")).catch(()=>{});
-  prefSet("cm-lofi","1");
+  AMB.lofi = true; $("btn-lofi").setAttribute("aria-pressed","true"); prefSet("cm-lofi","1");
+  ytReady(()=>{
+    if(!AMB.lofi) return;
+    if(AMB.pa){ if(AMB.pa.playVideo) AMB.pa.playVideo(); return; }
+    AMB.pa = new YT.Player("yta", {
+      videoId: AMB.mix,
+      playerVars:{autoplay:1, controls:0, playsinline:1, rel:0, iv_load_policy:3, disablekb:1},
+      events:{ onReady:e=>{ e.target.setVolume(55); e.target.playVideo(); },
+               /* Le mix fait 2 h : on reboucle quand il se termine. */
+               onStateChange:e=>{ if(e.data === YT.PlayerState.ENDED) e.target.playVideo(); } }
+    });
+  });
 }
-function lofiStop(){ lofi.pause(); $("btn-lofi").setAttribute("aria-pressed","false"); prefSet("cm-lofi","0"); }
-lofi.addEventListener("ended", ()=>{ lofiPos = (lofiPos+1)%AMB.tracks.length; lofi.src = AMB.tracks[lofiPos]; lofi.play().catch(()=>{}); });
-$("btn-lofi").addEventListener("click", ()=>lofi.paused ? lofiStart() : lofiStop());
+function lofiStop(){
+  AMB.lofi = false; if(AMB.pa && AMB.pa.pauseVideo) AMB.pa.pauseVideo();
+  $("btn-lofi").setAttribute("aria-pressed","false"); prefSet("cm-lofi","0");
+}
+$("btn-lofi").addEventListener("click", ()=>AMB.lofi ? lofiStop() : lofiStart());
+
 (function(){
   const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
   const saved = prefGet("cm-amb");
   if(saved === "1" || (saved === null && !reduced)) ambStart();
+  /* Le son exige un geste de l'utilisateur : on attend le premier clic. */
   if(prefGet("cm-lofi") === "1"){
     document.addEventListener("pointerdown", ()=>{ if(prefGet("cm-lofi")==="1") lofiStart(); }, {once:true});
   }
